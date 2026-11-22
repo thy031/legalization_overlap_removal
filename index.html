@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en" data-asset-base="../../../../assets/">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlap removal — Placement for EDA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #E9F7FF;
+      --card: #FFFFFF;
+      --ink: #1F2A5A;
+      --soft: #5C6B9C;
+      --line: #DCE7FF;
+      --pink: #FF5C93;
+      --blue: #3D7BFF;
+      --green: #2BBF7E;
+      --amber: #FFB300;
+      --purple: #9B5DFF;
+      --shadow: 0 12px 30px rgba(31, 42, 90, 0.10);
+      --r: 22px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #CBEBFF 0%, #EEF9FF 45%, #FFF7DC 100%);
+      min-height: 100vh;
+    }
+    h1, h2, h3 { font-family: 'Fredoka', system-ui, sans-serif; letter-spacing: -0.01em; }
+    code { font-family: 'JetBrains Mono', monospace; }
+
+    video::cue {
+      font-family: var(--font);
+      font-size: clamp(14px, 1.6vw, 18px);
+      line-height: 1.4;
+    }
+
+    /* Header */
+    .site-header {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(10px);
+      border-bottom: 2px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .header-inner {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .brand {
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--ink);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+    .badge-star {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--pink), var(--amber));
+      color: #fff;
+      display: inline-grid;
+      place-items: center;
+      font-size: 0.9rem;
+    }
+    .nav-links { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--soft);
+      font-weight: 700;
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+    }
+    .nav-links a:hover { background: #F1F6FF; color: var(--ink); }
+    .lang-switch { display: flex; background: #EEF3FF; padding: 3px; border-radius: 999px; }
+    .lang-switch button {
+      border: 0;
+      background: transparent;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--soft);
+    }
+    .lang-switch button[aria-selected="true"] {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 2px 6px rgba(31, 42, 90, 0.12);
+    }
+
+    main { max-width: 1140px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+
+    /* Hero */
+    .hero {
+      background: var(--card);
+      border: 3px solid var(--line);
+      border-radius: 28px;
+      padding: 1.75rem 2rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow {
+      display: inline-block;
+      background: #FFE5EF;
+      color: var(--pink);
+      font-weight: 800;
+      font-size: 0.82rem;
+      padding: 0.3rem 0.85rem;
+      border-radius: 999px;
+      margin-bottom: 0.6rem;
+    }
+    .hero h1 { margin: 0.2rem 0 0.6rem; font-size: clamp(2rem, 4vw, 2.85rem); }
+    .grad-text { color: var(--pink); }
+    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+      .grad-text {
+        background: linear-gradient(90deg, var(--pink), #FF8E3C, var(--purple));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+    }
+    .lead { color: var(--soft); font-size: 1.02rem; line-height: 1.6; max-width: 74ch; }
+
+    /* Cards & Buttons */
+    .card {
+      background: var(--card);
+      border: 3px solid var(--line);
+      border-radius: var(--r);
+      padding: 1.35rem 1.5rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.6rem 1.15rem;
+      font-weight: 700;
+      font-size: 0.92rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: transform 0.12s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-pink { background: var(--pink); color: #fff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-amber { background: var(--amber); color: var(--ink); }
+    .btn-ghost { background: #EEF4FF; color: var(--ink); }
+
+    /* Video Player & Native WebVTT Cue Styling */
+    .video-wrap video {
+      width: 100%;
+      border-radius: 20px;
+      border: 3px solid var(--line);
+      background: #0F172A;
+      display: block;
+    }
+    video::cue {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #FFFFFF;
+      background: rgba(18, 25, 56, 0.84);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+    .video-error {
+      margin-top: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 14px;
+      background: #FFE1EC;
+      color: #9E1B4B;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+
+    /* Interactive 12x6 Chip Tool */
+    .metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .metric-box {
+      background: #F7FAFF;
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      padding: 0.75rem 1rem;
+    }
+    .metric-lbl { font-size: 0.78rem; font-weight: 700; color: var(--soft); text-transform: uppercase; }
+    .metric-val { font-size: 1.55rem; font-weight: 800; margin-top: 0.15rem; }
+    .ok-txt { color: var(--green); }
+    .bad-txt { color: var(--pink); }
+    .controls { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-bottom: 1rem; }
+    .step-banner {
+      margin: 0 0 0.85rem;
+      padding: 0.65rem 1rem;
+      border-radius: 14px;
+      background: #F4F8FF;
+      border: 2px solid var(--line);
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--ink);
+    }
+    #chip-svg {
+      width: 100%;
+      max-width: 780px;
+      margin: 0 auto;
+      height: auto;
+      border-radius: 18px;
+      border: 3px solid var(--ink);
+      background: #FFF7E0;
+      display: block;
+    }
+
+    /* Quiz */
+    .quiz-item {
+      background: #F9FBFF;
+      border: 2px solid var(--line);
+      border-radius: 18px;
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .quiz-prompt { font-weight: 700; margin: 0 0 0.75rem; font-size: 1.02rem; }
+    .quiz-choices { display: grid; gap: 0.45rem; margin-bottom: 0.8rem; }
+    .quiz-choice {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #fff;
+      border: 2px solid var(--line);
+      padding: 0.55rem 0.85rem;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .quiz-choice:hover { border-color: var(--blue); }
+    .quiz-result {
+      margin-top: 0.65rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .quiz-result.show { display: block; }
+    .quiz-result.ok { background: #D7F7E8; color: #136B44; }
+    .quiz-result.bad { background: #FFE1EC; color: #9E1B4B; }
+    .quiz-summary {
+      margin-top: 1rem;
+      padding: 0.9rem 1.15rem;
+      border-radius: 16px;
+      font-weight: 800;
+      font-size: 1.05rem;
+      display: none;
+    }
+    .quiz-summary.show { display: block; }
+
+    /* Notes Grid */
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 0.75rem;
+    }
+    .note-pill {
+      border-radius: 18px;
+      padding: 1rem 1.1rem;
+      font-size: 0.93rem;
+      line-height: 1.5;
+    }
+    .note-pill.y { background: #FFF2C6; }
+    .note-pill.g { background: #D7F7E8; }
+    .note-pill.b { background: #DCE8FF; }
+    .note-pill.p { background: #FFE0EC; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#main">
+        <span class="badge-star">★</span>
+        <span data-i18n="brand">Placement for EDA · Module 2 Lesson 3</span>
+      </a>
+      <nav class="nav-links" aria-label="Section navigation">
+        <a href="#clip" data-i18n="navVideo">Lesson Video</a>
+        <a href="#tool" data-i18n="navTool">Browser Lab</a>
+        <a href="#quiz" data-i18n="navQuiz">Quiz</a>
+        <a href="#notes" data-i18n="navNotes">Pitfalls</a>
+      </nav>
+      <div class="lang-switch" role="tablist" aria-label="UI Language">
+        <button type="button" role="tab" data-ui-lang="en" aria-selected="true">English</button>
+        <button type="button" role="tab" data-ui-lang="zh" aria-selected="false">中文</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero">
+      <span class="eyebrow" data-i18n="eyebrow">Module 2 · Lesson 3 · Legalization</span>
+      <h1><span data-i18n="titleMain">Overlap</span> <span class="grad-text" data-i18n="titleAccent">removal</span></h1>
+      <p class="lead" data-i18n="heroLead">
+        Cells cannot sit on top of each other. First <strong>snap</strong> movable cells onto legal row sites, then <strong>left-pack</strong> each row in increasing <code>x</code> order without changing row assignments or moving fixed macros.
+      </p>
+    </section>
+
+    <!-- Video with Built-In Player Captions -->
+    <section class="card video-panel" id="clip" aria-label="Lesson video">
+      <h2 style="margin-top:0" data-i18n="videoHeading">Lesson Video · Overlap Removal</h2>
+      <div class="video-wrap">
+        <video id="lesson-video" controls preload="metadata" playsinline></video>
+      </div>
+    </section>
+
+    <!-- Interactive Browser Lab -->
+    <section class="card" id="tool">
+      <h2 style="margin-top:0" data-i18n="labHeading">Interactive 12×6 Legalization Lab</h2>
+      <p class="lead" data-i18n="labLead">
+        Teaching seed on a <code>12×6</code> chip (3 rows: <code>y = 0, 2, 4</code>). Width-2 movable cells <code>A, B, C</code> start stacked at <code>(4, 2)</code> while fixed cells <code>D@(8,4)</code>, <code>E@(0,4)</code>, and <code>F@(10,0)</code> stay anchored.
+      </p>
+
+      <div class="metrics-bar">
+        <div class="metric-box">
+          <div class="metric-lbl">legal?</div>
+          <div class="metric-val bad-txt" id="m-legal">✗ false</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-lbl">L1 displacement</div>
+          <div class="metric-val" id="m-disp">0</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-lbl">HPWL (wirelength)</div>
+          <div class="metric-val" id="m-hpwl">26</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-lbl">Chip Width W</div>
+          <div class="metric-val">12 sites</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button type="button" class="btn btn-pink" id="btn-seed">1 · Load overlap seed (4, 2)</button>
+        <button type="button" class="btn btn-amber" id="btn-snap">2 · Phase 1: Snap to grid</button>
+        <button type="button" class="btn btn-green" id="btn-pack">3 · Phase 2: Left-pack rows</button>
+        <button type="button" class="btn btn-ghost" id="btn-overflow">Test pitfall: Row overflow (x > W)</button>
+      </div>
+
+      <p class="step-banner" id="step-banner">Loaded overlap seed: A, B, C stacked at (4, 2).</p>
+      <svg id="chip-svg" viewBox="0 0 760 420" aria-label="12 by 6 placement grid"></svg>
+    </section>
+
+    <!-- Quiz Section -->
+    <section class="card" id="quiz">
+      <h2 style="margin-top:0" id="quiz-title">Overlap removal check</h2>
+      <p class="lead" id="quiz-subtitle">
+        Module <code>module02-03-overlap-removal</code> · Passing score: <strong>67%</strong> (3 / 4 questions).
+      </p>
+      <div id="quiz-root"></div>
+      <button type="button" class="btn btn-primary" id="score-quiz">Score quiz</button>
+      <div class="quiz-summary" id="quiz-summary"></div>
+    </section>
+
+    <!-- Pitfalls to Watch -->
+    <section class="card" id="notes">
+      <h2 style="margin-top:0" data-i18n="notesHeading">Pitfalls to Watch</h2>
+      <div class="notes-grid">
+        <div class="note-pill p"><strong>Trap 1 · Snap ≠ Legal:</strong> Snapping puts <code>A, B, C</code> on integer grid sites at <code>(4, 2)</code>, but all three still overlap until Phase 2 left-packs them.</div>
+        <div class="note-pill y"><strong>Trap 2 · Ignoring Cell Width:</strong> Each width-2 cell occupies <code>[x, x + 2)</code>—two consecutive sites—not a zero-width point.</div>
+        <div class="note-pill b"><strong>Trap 3 · Cross-Row Jumps:</strong> Overlap removal is an in-row <code>x</code> interval fix; cells stay on their assigned row <code>y</code>.</div>
+        <div class="note-pill g"><strong>Trap 4 · Overflow & Macros:</strong> Never overwrite fixed macros like <code>D@(8,4)</code>, and flag failure/overflow whenever packing exceeds chip width <code>W</code>.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* ======================================================================
+       1. MEDIA URL RESOLVER & VIDEO/CAPTION WIRING
+       ====================================================================== */
+    const COURSE_ID = "learn_placement";
+    const MODULE_DIR = "module02-03-overlap-removal";
+    const ORG = "SJTU-YONGFU-RESEARCH-GRP";
+    const MEDIA_REPO = "eda-learning";
+    const BRANCH = "main";
+
+    function localFileUrl(courseId, dir, file) {
+      const depth = document.querySelector("[data-asset-base]");
+      const assetBase = (depth && depth.getAttribute("data-asset-base")) || "../../assets/";
+      const prefix = String(assetBase).replace(/assets\/?$/, "course-media/");
+      return `${prefix}${courseId}/${dir}/${file}`;
+    }
+
+    function cdnFileUrl(file) {
+      return `https://cdn.jsdelivr.net/gh/${ORG}/${MEDIA_REPO}@${BRANCH}/courses/${COURSE_ID}/${MODULE_DIR}/${file}`;
+    }
+
+    function rawGithubUrl(file) {
+      return `https://raw.githubusercontent.com/${ORG}/${MEDIA_REPO}/${BRANCH}/courses/${COURSE_ID}/${MODULE_DIR}/${file}`;
+    }
+
+    async function initLessonVideoAndCaptions() {
+      const video = document.getElementById("lesson-video");
+      const panel = video.closest(".video-panel");
+      if (!video) return;
+
+      const videoCandidates = [
+        "final.mp4",
+        localFileUrl(COURSE_ID, MODULE_DIR, "final.mp4"),
+        `course-media/${COURSE_ID}/${MODULE_DIR}/final.mp4`,
+        cdnFileUrl("final.mp4"),
+        rawGithubUrl("final.mp4")
+      ];
+
+      const capDirs = [
+        "captions/",
+        "",
+        localFileUrl(COURSE_ID, MODULE_DIR, ""),
+        `course-media/${COURSE_ID}/${MODULE_DIR}/`
+      ];
+
+      let capBase = "captions/";
+      for (const dir of capDirs) {
+        try {
+          const r = await fetch(`${dir}or-short-en.vtt`, { method: "HEAD", cache: "no-cache" });
+          if (r.ok) { capBase = dir; break; }
+        } catch (_) {}
+      }
+
+      const tracks = [
+        { srclang: "en",  label: "English",        file: "or-short-en.vtt",        def: false },
+        { srclang: "zh",  label: "中文",            file: "or-short-zh.vtt",        def: false },
+        { srclang: "mul", label: "English + 中文", file: "or-short-bilingual.vtt", def: true  }
+      ];
+      tracks.forEach((t) => {
+        const el = document.createElement("track");
+        el.kind = "subtitles";
+        el.srclang = t.srclang;
+        el.label = t.label;
+        el.src = `${capBase}${t.file}`;
+        if (t.def) el.default = true;
+        video.appendChild(el);
+      });
+
+      let fi = 0;
+      const tryNextVideo = () => {
+        if (fi < videoCandidates.length) {
+          video.src = videoCandidates[fi++];
+          video.load();
+          return;
+        }
+        if (!panel.querySelector("[data-video-error]")) {
+          const hint = document.createElement("p");
+          hint.className = "video-error";
+          hint.setAttribute("data-video-error", "");
+          hint.innerHTML = `Video file not found. Place <code>final.mp4</code> next to <code>index.html</code> (or in <code>course-media/${COURSE_ID}/${MODULE_DIR}/</code>) and open via <code>http://localhost:8000</code>.`;
+          panel.appendChild(hint);
+        }
+      };
+
+      video.addEventListener("error", tryNextVideo);
+      tryNextVideo();
+    }
+
+    initLessonVideoAndCaptions();
+
+    /* ======================================================================
+       2. UI I18N (EN / ZH)
+       ====================================================================== */
+    let currentLang = "en";
+    const I18N = {
+      en: {
+        brand: "Placement for EDA · Module 2 Lesson 3",
+        navVideo: "Lesson Video",
+        navTool: "Browser Lab",
+        navQuiz: "Quiz",
+        navNotes: "Pitfalls",
+        eyebrow: "Module 2 · Lesson 3 · Legalization",
+        titleMain: "Overlap",
+        titleAccent: "removal",
+        heroLead: "Cells cannot sit on top of each other. First snap movable cells onto legal row sites, then left-pack each row in increasing x order without changing row assignments or moving fixed macros.",
+        videoHeading: "Lesson Video · Overlap Removal",
+        labHeading: "Interactive 12×6 Legalization Lab",
+        labLead: "Teaching seed on a 12×6 chip (3 rows: y = 0, 2, 4). Width-2 movable cells A, B, C start stacked at (4, 2) while fixed cells D@(8,4), E@(0,4), and F@(10,0) stay anchored.",
+        notesHeading: "Pitfalls to Watch"
+      },
+      zh: {
+        brand: "EDA 布局算法 · 第 2 章第 3 课",
+        navVideo: "课程视频",
+        navTool: "交互实验",
+        navQuiz: "随堂测验",
+        navNotes: "易错点",
+        eyebrow: "第 2 章 · 第 3 课 · 合法化（Legalization）",
+        titleMain: "重叠消除",
+        titleAccent: "（Overlap removal）",
+        heroLead: "单元不能互相堆叠。第一步先将可移动单元吸附（snap）到所在行的网格位点，第二步在每行内按左端 x 坐标排序并向左紧凑排列（left-pack），不跨行且跳过固定宏单元。",
+        videoHeading: "课程视频 · 重叠消除",
+        labHeading: "12×6 网格合法化交互实验",
+        labLead: "教学初始种子（12×6 芯片，3 行 y = 0, 2, 4）：宽度为 2 的可移动单元 A、B、C 堆叠在 (4, 2)，固定单元 D@(8,4)、E@(0,4)、F@(10,0) 保持不动。",
+        notesHeading: "常见陷阱"
+      }
+    };
+
+    document.querySelectorAll("[data-ui-lang]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentLang = btn.dataset.uiLang;
+        document.querySelectorAll("[data-ui-lang]").forEach(b => b.setAttribute("aria-selected", String(b === btn)));
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const k = el.dataset.i18n;
+          if (I18N[currentLang][k]) el.textContent = I18N[currentLang][k];
+        });
+        renderQuiz();
+      });
+    });
+
+    /* ======================================================================
+       3. INTERACTIVE 12x6 OVERLAP REMOVAL LAB
+       ====================================================================== */
+    const W_SITES = 12, H_ROWS = 6;
+    const ORIGIN = { A: { x: 4, y: 2 }, B: { x: 4, y: 2 }, C: { x: 4, y: 2 } };
+    const CELLS = {
+      E: { w: 1, h: 2, fixed: true,  color: "#00B8A9" },
+      D: { w: 2, h: 2, fixed: true,  color: "#FF9A3D" },
+      F: { w: 1, h: 2, fixed: true,  color: "#FF5C93" },
+      A: { w: 2, h: 2, fixed: false, color: "#3D7BFF" },
+      B: { w: 2, h: 2, fixed: false, color: "#2BBF7E" },
+      C: { w: 2, h: 2, fixed: false, color: "#9B5DFF" }
+    };
+    const NETS = [
+      ["E", "A"], ["A", "B"], ["B", "C"], ["C", "D"], ["C", "F"], ["A", "F"]
+    ];
+
+    let state = {};
+    function resetSeed() {
+      state = {
+        E: { x: 0, y: 4 }, D: { x: 8, y: 4 }, F: { x: 10, y: 0 },
+        A: { x: 4, y: 2 }, B: { x: 4, y: 2 }, C: { x: 4, y: 2 }
+      };
+      renderChip("Loaded overlap seed: A, B, C stacked at (4, 2).");
+    }
+
+    function computeHPWL(pos) {
+      let total = 0;
+      for (const [u, v] of NETS) {
+        const cx1 = pos[u].x + CELLS[u].w / 2, cy1 = pos[u].y + 1;
+        const cx2 = pos[v].x + CELLS[v].w / 2, cy2 = pos[v].y + 1;
+        total += Math.abs(cx1 - cx2) + Math.abs(cy1 - cy2);
+      }
+      return Math.round(total);
+    }
+
+    function evaluate(pos) {
+      const keys = Object.keys(CELLS);
+      const overlaps = [];
+      let overflow = false;
+
+      for (const k of keys) {
+        if (pos[k].x < 0 || pos[k].x + CELLS[k].w > W_SITES) overflow = true;
+      }
+      for (let i = 0; i < keys.length; i++) {
+        for (let j = i + 1; j < keys.length; j++) {
+          const a = keys[i], b = keys[j];
+          if (pos[a].y !== pos[b].y) continue;
+          const dx = Math.min(pos[a].x + CELLS[a].w, pos[b].x + CELLS[b].w) - Math.max(pos[a].x, pos[b].x);
+          if (dx > 1e-6) overlaps.push(`${a}/${b}`);
+        }
+      }
+      const disp = ["A", "B", "C"].reduce((acc, k) => acc + Math.abs(pos[k].x - ORIGIN[k].x) + Math.abs(pos[k].y - ORIGIN[k].y), 0);
+      const legal = !overflow && overlaps.length === 0;
+      return { legal, overflow, overlaps, disp: Math.round(disp * 10) / 10, hpwl: computeHPWL(pos) };
+    }
+
+    function renderChip(msg) {
+      const svg = document.getElementById("chip-svg");
+      const x0 = 55, y0 = 32, s = 54;
+      let out = "";
+      for (let u = 1; u < W_SITES; u++) {
+        out += `<line x1="${x0 + u*s}" y1="${y0}" x2="${x0 + u*s}" y2="${y0 + H_ROWS*s}" stroke="#EEDFB8" stroke-width="2"/>`;
+      }
+      [2, 4].forEach(r => {
+        const yy = y0 + (H_ROWS - r) * s;
+        out += `<line x1="${x0}" y1="${yy}" x2="${x0 + W_SITES*s}" y2="${yy}" stroke="#C5B07A" stroke-width="3" stroke-dasharray="8 6"/>`;
+      });
+      for (let u = 0; u <= W_SITES; u += 2) {
+        out += `<text x="${x0 + u*s}" y="${y0 + H_ROWS*s + 28}" font-size="16" font-weight="700" fill="#5C6B9C" text-anchor="middle">${u}</text>`;
+      }
+      [0, 2, 4].forEach(r => {
+        out += `<text x="${x0 - 16}" y="${y0 + (H_ROWS - r - 1)*s + 6}" font-size="15" font-weight="700" fill="#5C6B9C" text-anchor="end">y=${r}</text>`;
+      });
+
+      const order = ["E", "D", "F", "C", "B", "A"];
+      for (const k of order) {
+        const p = state[k], c = CELLS[k];
+        const px = x0 + p.x * s, py = y0 + (H_ROWS - p.y - c.h) * s;
+        out += `<g opacity="0.92">
+          <rect x="${px + 2}" y="${py + 2}" width="${c.w*s - 4}" height="${c.h*s - 4}" rx="10" fill="${c.color}" stroke="#fff" stroke-width="3"/>
+          <text x="${px + c.w*s/2}" y="${py + c.h*s/2 + 9}" font-size="26" font-weight="800" fill="#fff" text-anchor="middle">${k}</text>
+        </g>`;
+      }
+      svg.innerHTML = out;
+
+      const ev = evaluate(state);
+      const legalEl = document.getElementById("m-legal");
+      legalEl.textContent = ev.overflow ? "✗ overflow (>W)" : (ev.legal ? "✓ true" : "✗ false");
+      legalEl.className = "metric-val " + (ev.legal ? "ok-txt" : "bad-txt");
+      document.getElementById("m-disp").textContent = ev.disp;
+      document.getElementById("m-hpwl").textContent = ev.hpwl;
+      document.getElementById("step-banner").textContent = msg;
+    }
+
+    document.getElementById("btn-seed").onclick = resetSeed;
+    document.getElementById("btn-snap").onclick = () => {
+      ["A", "B", "C"].forEach(k => { state[k].x = Math.round(state[k].x); });
+      renderChip("Phase 1 (Snap): Snapped to integer grid sites, but A, B, C remain stacked at (4, 2).");
+    };
+    document.getElementById("btn-pack").onclick = () => {
+      state.A = { x: 4, y: 2 };
+      state.B = { x: 6, y: 2 };
+      state.C = { x: 8, y: 2 };
+      renderChip("Phase 2 (Left-pack): Sorted by x on row y=2 -> A@4, B@6, C@8. Legal! disp=6, HPWL=32.");
+    };
+    document.getElementById("btn-overflow").onclick = () => {
+      state.A = { x: 8, y: 2 };
+      state.B = { x: 10, y: 2 };
+      state.C = { x: 12, y: 2 };
+      renderChip("Pitfall check: C starts at x=12 (width 2 -> ends at 14 > W=12). Flag failure/overflow!");
+    };
+    resetSeed();
+
+    /* ======================================================================
+       4. QUIZ DATA (loads external quiz.json first, falls back to embedded)
+       ====================================================================== */
+    const FALLBACK_QUIZ = {
+      module: "module02-03-overlap-removal",
+      title: "Overlap removal check",
+      passing_score: 0.67,
+      items: [
+        {
+          id: "q1",
+          type: "multiple_choice",
+          prompt: "Overlap removal primarily shifts cells along…",
+          choices: ["The same row (x)", "Random y jumps", "Only diagonals", "Netlist edges"],
+          answer: 0,
+          explain: "In-row interval fix."
+        },
+        {
+          id: "q2",
+          type: "true_false",
+          prompt: "Sorting cells by left x before shifting is a common policy.",
+          answer: true,
+          explain: "Deterministic sweep."
+        },
+        {
+          id: "q3",
+          type: "true_false",
+          prompt: "Overlap removal always minimizes HPWL.",
+          answer: false,
+          explain: "Goal is legality first."
+        },
+        {
+          id: "q4",
+          type: "multiple_choice",
+          prompt: "If shift exceeds chip width W, you should…",
+          choices: ["Flag failure/overflow", "Ignore legality", "Delete cells", "Skip row checks"],
+          answer: 0,
+          explain: "Cannot pack in row."
+        }
+      ]
+    };
+
+    const ZH_TRANSLATIONS = {
+      title: "重叠消除随堂检查",
+      q1: {
+        prompt: "重叠消除（Overlap removal）主要沿哪个方向移动单元？",
+        choices: ["同一行方向（x）", "随机跨行跳跃（y）", "仅沿对角线方向", "沿网表连线斜向"],
+        explain: "行内水平区间修复（不改变单元所在行）。"
+      },
+      q2: {
+        prompt: "在移动前按左端 x 坐标对单元排序是一种常见策略。",
+        choices: ["正确（True）", "错误（False）"],
+        explain: "确定性左向右扫描（Deterministic sweep）。"
+      },
+      q3: {
+        prompt: "重叠消除总是能使 HPWL 最小化。",
+        choices: ["正确（True）", "错误（False）"],
+        explain: "首要目标是合法化（legality first）。"
+      },
+      q4: {
+        prompt: "如果单元向右推移后超出了芯片宽度 W，应该怎么做？",
+        choices: ["标记失败 / 溢出（Flag failure/overflow）", "忽略合法性约束", "直接删除多余单元", "跳过行边界检查"],
+        explain: "该行容量不足，无法完成行内打包（Cannot pack in row）。"
+      }
+    };
+
+    let activeQuiz = FALLBACK_QUIZ;
+
+    function normalizeQuizItems(quiz) {
+      return (quiz.items || []).map((item, idx) => {
+        const zh = ZH_TRANSLATIONS[item.id] || {};
+        if (item.type === "true_false") {
+          const ansIdx = item.answer === true || item.answer === 0 ? "0" : "1";
+          return {
+            id: item.id || `q${idx + 1}`,
+            answer: ansIdx,
+            prompt: { en: `${idx + 1}. ${item.prompt}`, zh: `${idx + 1}. ${zh.prompt || item.prompt}` },
+            choices: { en: ["True", "False"], zh: zh.choices || ["正确（True）", "错误（False）"] },
+            explain: { en: item.explain || "", zh: zh.explain || item.explain || "" }
+          };
+        }
+        return {
+          id: item.id || `q${idx + 1}`,
+          answer: String(item.answer),
+          prompt: { en: `${idx + 1}. ${item.prompt}`, zh: `${idx + 1}. ${zh.prompt || item.prompt}` },
+          choices: { en: item.choices || [], zh: zh.choices || item.choices || [] },
+          explain: { en: item.explain || "", zh: zh.explain || item.explain || "" }
+        };
+      });
+    }
+
+    function renderQuiz() {
+      const root = document.getElementById("quiz-root");
+      const saved = {};
+      root.querySelectorAll(".quiz-item").forEach(el => {
+        const checked = el.querySelector("input:checked");
+        if (checked) saved[el.dataset.id] = checked.value;
+      });
+      const lang = currentLang === "zh" ? "zh" : "en";
+      document.getElementById("quiz-title").textContent = lang === "zh" ? ZH_TRANSLATIONS.title : activeQuiz.title;
+      const items = normalizeQuizItems(activeQuiz);
+
+      root.innerHTML = items.map(q => {
+        const choicesHtml = q.choices[lang].map((label, idx) =>
+          `<label class="quiz-choice">
+            <input type="radio" name="${q.id}" value="${idx}" ${saved[q.id] === String(idx) ? "checked" : ""}>
+            <span>${label}</span>
+          </label>`
+        ).join("");
+        return `<div class="quiz-item" data-id="${q.id}" data-answer="${q.answer}" data-explain="${q.explain[lang]}">
+          <p class="quiz-prompt">${q.prompt[lang]}</p>
+          <div class="quiz-choices">${choicesHtml}</div>
+          <button type="button" class="btn btn-ghost" data-check="${q.id}">${lang === "zh" ? "检查本题" : "Check answer"}</button>
+          <div class="quiz-result"></div>
+        </div>`;
+      }).join("");
+    }
+
+    function gradeOne(item) {
+      const picked = item.querySelector("input:checked");
+      const res = item.querySelector(".quiz-result");
+      const lang = currentLang === "zh" ? "zh" : "en";
+      res.classList.add("show");
+      if (!picked) {
+        res.className = "quiz-result show bad";
+        res.textContent = lang === "zh" ? "请先选择一个选项。" : "Please select an option first.";
+        return false;
+      }
+      const ok = picked.value === item.dataset.answer;
+      res.className = "quiz-result show " + (ok ? "ok" : "bad");
+      res.textContent = (ok ? (lang === "zh" ? "✓ 正确！" : "✓ Correct! ") : (lang === "zh" ? "✗ 错误：" : "✗ Incorrect: ")) + item.dataset.explain;
+      return ok;
+    }
+
+    document.getElementById("quiz-root").addEventListener("click", e => {
+      const id = e.target.dataset.check;
+      if (id) gradeOne(document.querySelector(`.quiz-item[data-id="${id}"]`));
+    });
+
+    document.getElementById("score-quiz").addEventListener("click", () => {
+      const items = document.querySelectorAll(".quiz-item");
+      let ok = 0;
+      items.forEach(it => { if (gradeOne(it)) ok++; });
+      const ratio = ok / items.length;
+      const threshold = activeQuiz.passing_score || 0.67;
+      const passed = ratio >= threshold;
+      const pct = Math.round(ratio * 100);
+      const sum = document.getElementById("quiz-summary");
+      sum.classList.add("show");
+      sum.style.background = passed ? "#D7F7E8" : "#FFE1EC";
+      sum.style.color = passed ? "#136B44" : "#9E1B4B";
+      sum.textContent = currentLang === "zh"
+        ? `得分：${ok} / ${items.length}（${pct}%）— ${passed ? "通过（≥ 67%）！" : "未达到 67% 及格线，请复习后重试。"}`
+        : `Score: ${ok} / ${items.length} (${pct}%) — ${passed ? "Passed (≥ 67%)!" : "Below 67% passing threshold. Review and retry."}`;
+    });
+
+    (async () => {
+      for (const url of ["quiz.json", localFileUrl(COURSE_ID, MODULE_DIR, "quiz.json")]) {
+        try {
+          const r = await fetch(url, { cache: "no-cache" });
+          if (r.ok) { activeQuiz = await r.json(); break; }
+        } catch (_) {}
+      }
+      renderQuiz();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:P;font-weight:400;src:url(file:///usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf)}
+@font-face{font-family:P;font-weight:500;src:url(file:///usr/share/fonts/truetype/google-fonts/Poppins-Medium.ttf)}
+@font-face{font-family:P;font-weight:700;src:url(file:///usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf)}
+@font-face{font-family:M;font-weight:700;src:url(file:///usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf)}
+html,body{margin:0;background:#fff;overflow:hidden}
+svg{display:block}
+</style></head><body>
+<svg id="s" xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+<script>
+/* ---------- helpers ---------- */
+const W=1920,H=1080,DUR=206.9667;
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const eo=t=>1-Math.pow(1-clamp(t),3);
+const eob=t=>{t=clamp(t);const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)};
+const ez=t=>{t=clamp(t);return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2};
+const pp=x=>1-Math.abs(1-(((x%2)+2)%2));
+const R=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const f1=n=>Math.round(n*10)/10;
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const INK='#1F2A5A',SOFT='#6B7AA8';
+const ctx=document.createElement('canvas').getContext('2d');
+function meas(s,size,w=500,f='P'){ctx.font=`${w} ${size}px ${f}`;return ctx.measureText(s.replace(/\*\*/g,'')).width}
+const wrapCache={};
+function wrap(s,size,w,maxW){
+  const key=s+size+w+maxW; if(wrapCache[key])return wrapCache[key];
+  const words=s.split(' '),lines=[];let cur='';
+  for(const wd of words){const tst=cur?cur+' '+wd:wd; if(meas(tst,size,w)>maxW&&cur){lines.push(cur);cur=wd}else cur=tst}
+  if(cur)lines.push(cur); return wrapCache[key]=lines;
+}
+function T(s,x,y,size,fill,o={}){
+  const weight=o.w||500,anchor=o.a||'start',font=o.f||'P';
+  const parts=s.split('**');let inner='';
+  parts.forEach((p,i)=>{if(!p)return;const b=i%2===1;inner+=`<tspan${b?` font-weight="700" fill="${o.acc||'#FF5C93'}"`:''}>${esc(p)}</tspan>`});
+  return `<text x="${f1(x)}" y="${f1(y)}" font-family="${font}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" ${o.x||''}>${inner}</text>`;
+}
+function TW(s,x,y,maxW,size,fill,o={}){const L=wrap(s,size,o.w||500,maxW),lh=o.lh||size*1.35;return L.map((l,i)=>T(l,x,y+i*lh,size,fill,o)).join('')}
+function TC(s,x,cy,maxW,size,fill,o={}){ // vertically centred wrapped text
+  const L=wrap(s,size,o.w||500,maxW),lh=o.lh||size*1.3;
+  const y0=cy-(L.length-1)*lh/2+size*0.35;
+  return L.map((l,i)=>T(l,x,y0+i*lh,size,fill,o)).join('');
+}
+function G(t,t0,inner,cx,cy,o={}){
+  if(t<t0)return '';
+  const u=(t-t0)/(o.d||.45),k=eob(u),a=clamp((t-t0)/.18);
+  return `<g opacity="${f1(a*100)/100}" transform="translate(${f1(cx)} ${f1(cy)}) scale(${k.toFixed(3)}) translate(${f1(-cx)} ${f1(-cy)})">${inner}</g>`;
+}
+function rect(x,y,w,h,r,fill,ex=''){return `<rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="${r}" fill="${fill}" ${ex}/>`}
+function circ(x,y,r,fill,ex=''){return `<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r)}" fill="${fill}" ${ex}/>`}
+function starP(cx,cy,r,rot=0){let p='';for(let i=0;i<10;i++){const a=rot+i*Math.PI/5-Math.PI/2,rr=i%2?r*.45:r;p+=(i?'L':'M')+f1(cx+Math.cos(a)*rr)+' '+f1(cy+Math.sin(a)*rr)}return p+'Z'}
+function card(x,y,w,h,fill='#fff',r=36,ex=''){return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${fill}" filter="url(#sh)" ${ex}/>`}
+function arrow(x1,y1,x2,y2,col,w=6,gap=0){
+  const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;
+  const ex=x2-ux*gap,ey=y2-uy*gap,sx=x1+ux*gap,sy=y1+uy*gap;
+  const hx=ex-ux*18,hy=ey-uy*18;
+  return `<line x1="${f1(sx)}" y1="${f1(sy)}" x2="${f1(hx)}" y2="${f1(hy)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`+
+   `<polygon points="${f1(ex)},${f1(ey)} ${f1(hx-uy*11)},${f1(hy+ux*11)} ${f1(hx+uy*11)},${f1(hy-ux*11)}" fill="${col}"/>`;
+}
+const PAST=['#FFE9A8','#C9F2DC','#D3E1FF','#FFD3E3'],DARK=['#FFB300','#2BBF7E','#4C7DFF','#FF5C93'];
+function bulletCards(t,items,times,x,y,w,h,gap,size){
+  let s='';
+  items.forEach((it,i)=>{
+    const yy=y+i*(h+gap),cy=yy+h/2;
+    const inner=rect(x,yy,w,h,34,PAST[i%4],`stroke="#fff" stroke-width="5"`)+circ(x+66,cy,38,DARK[i%4])+T(String(i+1),x+66,cy+16,46,'#fff',{w:700,a:'middle'})+TC(it,x+130,cy,w-160,size,INK,{acc:DARK[i%4]==='#FFB300'?'#E07B00':DARK[i%4]});
+    s+=G(t,times[i],inner,x+w/2,cy);
+  });
+  return s;
+}
+
+/* ---------- schedule (seconds of the ORIGINAL narration) ---------- */
+const CUT=[133.53,174.67],GAP=CUT[1]-CUT[0],DUR2=DUR-GAP; // browser-lab + implement-track sections are cut out
+const toOut=t=>t<CUT[0]?t:(t<CUT[1]?CUT[0]:t-GAP);
+const SEC=[
+ {sc:0,s:0,e:16.93,title:'',acc:'#FF5C93',phrase:"Hi! I'm Pip!",mood:'wave'},
+ {sc:1,s:16.93,e:32.83,title:'The big idea',acc:'#4C7DFF',phrase:"No pile-ups!",mood:'smile'},
+ {sc:2,s:32.83,e:54.47,title:'Pseudocode',acc:'#9B5DFF',phrase:"Two phases!",mood:'smile'},
+ {sc:3,s:54.47,e:70.3,title:'Algorithm sketch',acc:'#00B8A9',phrase:"Here's the recipe!",mood:'smile'},
+ {sc:4,s:70.3,e:82.53,title:'A, B, C stacked at (4, 2)',acc:'#FF5C93',phrase:"Oh no, a pile-up!",mood:'worry'},
+ {sc:5,s:82.53,e:94.87,title:'After snap: still stacked',acc:'#FF9A00',phrase:"Still stacked!",mood:'o'},
+ {sc:6,s:94.87,e:108.07,title:'Per-row pack: A@4, B@6, C@8',acc:'#4C7DFF',phrase:"Slide over!",mood:'o'},
+ {sc:7,s:108.07,e:119.23,title:'Legal: disp 6, HPWL 32',acc:'#2BBF7E',phrase:"It's legal!",mood:'smile'},
+ {sc:8,s:119.23,e:133.53,title:'D, E, F unchanged',acc:'#9B5DFF',phrase:"They stayed put!",mood:'smile'},
+ {sc:9,s:174.67,e:192.07,title:'Pitfalls',acc:'#FF5C93',phrase:"Watch out!",mood:'worry'},
+ {sc:10,s:192.07,e:206.97,title:'Your turn!',acc:'#4C7DFF',phrase:"You can do it!",mood:'cheer'}
+];
+const SCH={
+ s1:[17.2,21.9,26.1], s2:[33.1,38.5,44.8,49.2],
+ s4:[70.6,75.8,77.0,78.2], s5:[82.9,89.7,90.9,92.1], s6:[95.2,102.9,104.1,105.3],
+ s7:[108.4,114.9,116.1,117.3], s8:[119.5,127.1,128.5,129.9],
+ s9:[175.0,180.8,186.5], s13:[192.4,196.7,200.4,205.1]
+};
+function secIndex(t){for(let i=SEC.length-1;i>=0;i--)if(t>=SEC[i].s)return i;return 0}
+
+/* ---------- background, progress, mascot ---------- */
+const DEFS=`<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFE8FF"/><stop offset=".65" stop-color="#E6F6FF"/><stop offset="1" stop-color="#FFF3C9"/></linearGradient>
+<linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FF5C93"/><stop offset=".5" stop-color="#FF9A3D"/><stop offset="1" stop-color="#9B5DFF"/></linearGradient>
+<linearGradient id="gb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FF5C93"/><stop offset=".5" stop-color="#FFB300"/><stop offset="1" stop-color="#2BBF7E"/></linearGradient>
+<linearGradient id="gm" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2BBF7E"/><stop offset=".5" stop-color="#FFB300"/><stop offset="1" stop-color="#FF5C93"/></linearGradient>
+<filter id="sh" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#1F2A5A" flood-opacity=".16"/></filter>
+</defs>`;
+const BUB=['#FF9EB5','#FFD23F','#7FD1FF','#B79CFF','#8CE6B0','#FFB07A'];
+function cloud(x,y,sc,a){return `<g transform="translate(${f1(x)} ${y}) scale(${sc})" opacity="${a}"><ellipse cx="0" cy="0" rx="90" ry="34" fill="#fff"/><circle cx="-30" cy="-26" r="38" fill="#fff"/><circle cx="25" cy="-34" r="46" fill="#fff"/></g>`}
+function bg(t){
+  let s=rect(0,0,W,H,0,'url(#sky)');
+  [[200,170,1.0,.9,22],[900,120,1.3,.8,14],[1500,230,.9,.85,28],[1100,360,.7,.6,18]].forEach(([x,y,sc,a,sp],i)=>{
+    const xx=((x+t*sp)%2400)-240; s+=cloud(xx,y,sc,a)});
+  for(let i=0;i<14;i++){
+    const sp=18+R(i+30)*26,y=1120-((t*sp+R(i+60)*1300)%1300),x=R(i)*1920+Math.sin(t*.8+i)*22,r=14+R(i+90)*30;
+    s+=circ(x,y,r,BUB[i%6],'opacity=".38"');
+  }
+  s+=`<path d="M0 1005 Q 400 935 820 990 T 1620 972 T 1920 1000 V1080 H0Z" fill="#B3EBAA"/>`;
+  s+=`<path d="M0 1052 Q 520 1000 1020 1042 T 1920 1030 V1080 H0Z" fill="#82DB8F"/>`;
+  return s;
+}
+function progress(t){
+  const x0=120,x1=1800,w=x1-x0,p=clamp(toOut(t)/DUR2);
+  let s=rect(x0,30,w,18,9,'#fff','opacity=".75"')+rect(x0,30,Math.max(18,w*p),18,9,'url(#gb)');
+  SEC.forEach((c,i)=>{if(i===0)return;const x=x0+w*toOut(c.s)/DUR2;s+=circ(x,39,5,t>=c.s?'#fff':'#B9C6E8')});
+  const kx=x0+w*p;s+=`<path d="${starP(kx,39,22,t*1.5)}" fill="#FFD23F" stroke="#F2A900" stroke-width="4" stroke-linejoin="round"/>`;
+  return s;
+}
+function mascot(t,sec){
+  const cheer=sec.mood==='cheer';
+  const jump=cheer?Math.abs(Math.sin(t*5))*55:Math.abs(Math.sin(t*3))*12;
+  const cx=1795,ground=1010,cy=ground-72-jump;
+  const blink=(t%3.3)<.13;
+  let m=sec.mood;
+  let s=`<ellipse cx="${cx}" cy="${ground}" rx="${f1(62-jump*.3)}" ry="12" fill="#000" opacity=".12"/>`;
+  s+=`<g transform="translate(${cx} ${f1(cy)})">`;
+  s+=`<line x1="0" y1="-60" x2="0" y2="-92" stroke="#F2A900" stroke-width="6" stroke-linecap="round"/>`+circ(0,-98+Math.sin(t*6)*3,11,'#FF5C93');
+  if(m==='wave'||m==='cheer'){const a=Math.sin(t*9)*18;s+=`<line x1="56" y1="8" x2="94" y2="${f1(-34+a)}" stroke="#F2A900" stroke-width="12" stroke-linecap="round"/>`+circ(96,-38+a,13,'#FFD23F','stroke="#F2A900" stroke-width="5"')}
+  s+=`<ellipse cx="-26" cy="66" rx="22" ry="11" fill="#F2A900"/><ellipse cx="26" cy="66" rx="22" ry="11" fill="#F2A900"/>`;
+  s+=circ(0,0,64,'#FFD23F','stroke="#F2A900" stroke-width="6"');
+  s+=circ(-38,16,11,'#FF9EB5','opacity=".85"')+circ(38,16,11,'#FF9EB5','opacity=".85"');
+  [-22,22].forEach(ex=>{s+=`<ellipse cx="${ex}" cy="-8" rx="9" ry="${blink?1.5:13}" fill="${INK}"/>`;if(!blink)s+=circ(ex-3,-13,3.5,'#fff')});
+  if(m==='worry'){s+=`<line x1="-36" y1="-30" x2="-12" y2="-38" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><line x1="12" y1="-38" x2="36" y2="-30" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>`;
+    s+=`<path d="M-16 32 Q0 18 16 32" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>`}
+  else if(m==='o'){s+=`<ellipse cx="0" cy="26" rx="13" ry="${f1(14+Math.sin(t*8)*2)}" fill="${INK}"/>`}
+  else{s+=`<path d="M-20 16 Q0 40 20 16" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>`}
+  s+=`</g>`;
+  // speech bubble
+  const lt=t-sec.s,show=lt>.8&&lt<5.4;
+  if(show){
+    const w=meas(sec.phrase,34,700)+64,x=1715-w,y=905,k=eob((lt-.8)/.4)*(1-eo((lt-5)/.4));
+    const inner=rect(x,y,w,72,36,'#fff','stroke="#FFD23F" stroke-width="5" filter="url(#sh)"')+`<polygon points="${f1(x+w-4)},${y+22} ${f1(x+w+34)},${y+50} ${f1(x+w-4)},${y+52}" fill="#fff" stroke="#FFD23F" stroke-width="5" stroke-linejoin="round"/>`+rect(x+w-12,y+16,16,44,0,'#fff')+T(sec.phrase,x+w/2-6,y+49,34,INK,{w:700,a:'middle'});
+    s+=`<g transform="translate(${f1(x+w)} ${y+36}) scale(${f1(Math.max(k,0)*100)/100}) translate(${f1(-(x+w))} ${-(y+36)})">${inner}</g>`;
+  }
+  return s;
+}
+function burst(t){
+  let s='';
+  SEC.forEach((c,i)=>{
+    if(i===0)return;const d=t-c.s;if(d<0||d>.8)return;
+    for(let k=0;k<12;k++){const a=k/12*Math.PI*2+R(i)*3,r=60+d*520*eo(d/.8)*(.7+R(k+i)*.6);
+      const x=1795+Math.cos(a)*r*1.3-300*eo(d/.8)*0,y=900+Math.sin(a)*r*.9-d*80;
+      s+=`<path d="${starP(x,y,18-d*14+R(k)*8,d*6+k)}" fill="${BUB[k%6]}" opacity="${f1(1-d/.8)}"/>`}
+  });
+  return s;
+}
+
+function headerT(t,sec,extra=''){
+  const lt=t-sec.s,k=eob(lt/.5);const wd=meas(sec.title,72,700,'P');
+  return `<g transform="translate(110 150) scale(${f1(k*100)/100}) translate(-110 -150)">${T(sec.title,110,150,72,INK,{w:700})}${rect(110,168,wd*eo(lt/.8),12,6,sec.acc)}${extra}</g>`;
+}
+function stepBadge(t,n,t0,acc){
+  let inner=rect(980,190,420,64,32,'#fff','stroke="'+acc+'" stroke-width="5"')+T(`Step ${n} of 5`,1010,235,32,INK,{w:700});
+  for(let i=0;i<5;i++)inner+=circ(1255+i*30,222,10,i<n?acc:'#DCE5FA');
+  return G(t,t0,inner,1190,222);
+}
+function explain(t,txt,t0,acc){
+  const inner=card(980,275,850,270)+`<path d="M980 311 a36 36 0 0 1 36 -36 H1000 V545 H1016 a36 36 0 0 1 -36 -36 Z" fill="${acc}"/>`+TW(txt,1030,328,770,30,INK,{acc:acc==='#FFB300'?'#E07B00':acc});
+  return G(t,t0,inner,1405,410);
+}
+function chips3(t,items,times,acc){
+  let s='';items.forEach((it,i)=>{const yy=565+i*98,inner=rect(980,yy,850,84,42,PAST[i%4],'stroke="#fff" stroke-width="5"')+path('check',1030,yy+42,DARK[i%4])+T(it,1085,yy+54,32,INK,{w:500});s+=G(t,times[i],inner,1405,yy+42)});return s;
+}
+function path(n,cx,cy,col){
+  if(n==='check')return circ(cx,cy,24,col)+`<polyline points="${cx-11},${cy} ${cx-3},${cy+9} ${cx+12},${cy-9}" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return '';
+}
+
+/* ---------- icons for step cards ---------- */
+function icon(n,cx,cy,col,t){
+  const b=Math.sin(t*3)*4;cy+=b;
+  if(n==='browser')return rect(cx-85,cy-62,170,124,18,'#fff',`stroke="${col}" stroke-width="8"`)+rect(cx-85,cy-62,170,34,18,col)+rect(cx-85,cy-46,170,18,0,col)+circ(cx-62,cy-45,6,'#fff')+circ(cx-44,cy-45,6,'#fff')+circ(cx-26,cy-45,6,'#fff')+`<line x1="${cx-30}" y1="${cy+22}" x2="${cx+28}" y2="${cy-4}" stroke="#9DB3DD" stroke-width="6" stroke-linecap="round"/>`+circ(cx-30,cy+22,16,'#3CCB6A')+circ(cx+28,cy-4,16,'#FFC21A');
+  if(n==='play')return circ(cx,cy,70,col)+`<polygon points="${cx-22},${cy-38} ${cx-22},${cy+38} ${cx+42},${cy}" fill="#fff"/>`;
+  if(n==='lock')return rect(cx-56,cy-6,112,84,18,col)+`<path d="M${cx-34} ${cy-6} V${cy-34} a34 34 0 0 1 68 0 V${cy-6}" fill="none" stroke="#B8860B" stroke-width="16" stroke-linecap="round"/>`+circ(cx,cy+30,13,'#fff')+rect(cx-5,cy+30,10,28,5,'#fff')+`<path d="${starP(cx+66,cy-60,22,t)}" fill="#FFD23F"/>`;
+  if(n==='code')return rect(cx-88,cy-62,176,124,22,col)+T('</>',cx,cy+22,70,'#fff',{w:700,a:'middle',f:'M'});
+  if(n==='file')return `<path d="M${cx-62} ${cy-76} H${cx+22} L${cx+62} ${cy-36} V${cy+76} H${cx-62} Z" fill="#fff" stroke="${col}" stroke-width="8" stroke-linejoin="round"/><path d="M${cx+22} ${cy-76} V${cy-36} H${cx+62}" fill="none" stroke="${col}" stroke-width="8" stroke-linejoin="round"/>`+T('{ }',cx,cy+20,56,col,{w:700,a:'middle',f:'M'});
+  if(n==='check')return circ(cx,cy,72,col)+`<polyline points="${cx-34},${cy+2} ${cx-8},${cy+30} ${cx+38},${cy-26}" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>`;
+  if(n==='warn')return `<path d="M${cx} ${cy-58} L${cx+66} ${cy+50} H${cx-66} Z" fill="#FFB300" stroke="#E08A00" stroke-width="10" stroke-linejoin="round"/>`+T('!',cx,cy+34,70,'#fff',{w:700,a:'middle'});
+  return '';
+}
+function stepCards(t,items,times,acc,icons,cols){
+  let s='';
+  items.forEach((it,i)=>{
+    const x=90+i*600,y=210,w=540,h=580,cx=x+w/2;
+    let inner=card(x,y,w,h)+rect(x,y,w,20,0,cols[i],'clip-path="inset(0)"');
+    inner=card(x,y,w,h)+`<path d="M${x} ${y+36} a36 36 0 0 1 36 -36 H${x+w-36} a36 36 0 0 1 36 36 V${y+30} H${x} Z" fill="${cols[i]}"/>`;
+    inner+=circ(x+60,y+84,40,cols[i],'stroke="#fff" stroke-width="6"')+T(String(i+1),x+60,y+100,46,'#fff',{w:700,a:'middle'});
+    inner+=icon(icons[i],cx,y+210,cols[i],t+i);
+    inner+=TW(it,x+40,y+370,w-80,34,INK,{acc:cols[i],lh:46});
+    s+=G(t,times[i],inner,cx,y+h/2,{d:.55});
+    if(i<2&&t>times[i+1]-.3){const ax=x+w+30,a=.5+.5*Math.sin(t*6+i);s+=`<polygon points="${ax-12},${y+270-22} ${ax+14},${y+270} ${ax-12},${y+270+22}" fill="${acc}" opacity="${f1(a)}"/>`}
+  });
+  return s;
+}
+
+/* ---------- chip / cells ---------- */
+const CELLS={A:{w:2,h:2,c:'#3D7BFF'},B:{w:2,h:2,c:'#2BBF7E'},C:{w:2,h:2,c:'#9B5DFF'},D:{w:2,h:2,c:'#FF9A3D'},E:{w:1,h:2,c:'#00B8A9'},F:{w:1,h:2,c:'#FF5C93'}};
+const FIXED={D:{x:8,y:4},E:{x:0,y:4},F:{x:10,y:0}};
+const mk=(a,b,c,ex={})=>({E:{...FIXED.E,...(ex.E||{})},D:{...FIXED.D,...(ex.D||{})},F:{...FIXED.F,...(ex.F||{})},A:{x:a,y:2,...(ex.A||{})},B:{x:b,y:2,...(ex.B||{})},C:{x:c,y:2,...(ex.C||{})}});
+const ORD_STACK=['E','D','F','A','B','C'],ORD_PACK=['E','D','F','C','B','A'];
+function drawChip(t,x0,y0,s,pos,o={}){
+  let g=rect(x0-8,y0-8,12*s+16,6*s+16,16,'#FFF7E0',`stroke="${INK}" stroke-width="6"`);
+  for(let u=1;u<12;u++)g+=`<line x1="${f1(x0+u*s)}" y1="${y0}" x2="${f1(x0+u*s)}" y2="${f1(y0+6*s)}" stroke="#F0E3BC" stroke-width="2"/>`;
+  [2,4].forEach(v=>{const yy=y0+(6-v)*s;g+=`<line x1="${x0}" y1="${f1(yy)}" x2="${f1(x0+12*s)}" y2="${f1(yy)}" stroke="#C2AE7A" stroke-width="3" stroke-dasharray="10 8"/>`});
+  if(o.ticks!==false)for(let u=0;u<=12;u+=2)g+=T(String(u),x0+u*s,y0+6*s+Math.max(26,s*.55)+6,Math.max(18,s*.4),SOFT,{w:500,a:'middle'});
+  const keys=o.order||ORD_STACK,ov={};
+  if(o.detect)for(const a of keys)for(const b of keys)if(a<b){const A=pos[a],B=pos[b],ca=CELLS[a],cb=CELLS[b];
+    const dx=Math.min(A.x+ca.w,B.x+cb.w)-Math.max(A.x,B.x),dy=Math.min(A.y+ca.h,B.y+cb.h)-Math.max(A.y,B.y);
+    if(dx>.02&&dy>.02){ov[a]=1;ov[b]=1}}
+  keys.forEach(k=>{const p=pos[k],c=CELLS[k],px=x0+p.x*s,py=y0+(6-p.y-c.h)*s,al=p.a??.92;
+    g+=`<g opacity="${al}">`+rect(px+2,py+2,c.w*s-4,c.h*s-4,Math.max(6,s*.16),c.c,'stroke="#fff" stroke-width="3"')+(p.nl?'':T(k,px+c.w*s/2,py+c.h*s/2+s*.24,s*.7,'#fff',{w:700,a:'middle'}))+`</g>`;
+    const out=p.out||(ov[k]?'#FF3B3B':null);
+    if(out)g+=rect(px-3,py-3,c.w*s+6,c.h*s+6,12,'none',`stroke="${out}" stroke-width="${f1(5+Math.sin(t*8)*1.5)}"`)});
+  return g;
+}
+const BX=150,BY=430,BS=60; // step-board geometry
+const cx=(u)=>BX+u*BS, cyTop=(y,h=2)=>BY+(6-y-h)*BS;
+function pill(txt,x,y,w,fill,col='#fff',size=26){return rect(x,y,w,44,22,fill,'stroke="#fff" stroke-width="4"')+T(txt,x+w/2,y+31,size,col,{w:700,a:'middle'})}
+function statusCard(t,t0,legal,sub,disp,hp){
+  const x=90,y=190;let inner=card(x,y,840,120);
+  const lc=legal===true?'#2BBF7E':legal===false?'#FF5C93':SOFT,lt=legal===true?'✓ true':legal===false?'✗ false':'?';
+  inner+=T('legal?',x+34,y+38,24,SOFT,{w:500})+T(lt,x+34,y+92,54,lc,{w:700});
+  if(sub)inner+=T(sub,x+34,y+114,20,SOFT,{w:500});
+  inner+=T('displacement',x+330,y+38,24,SOFT,{w:500})+T(disp,x+330,y+92,54,INK,{w:700});
+  inner+=T('HPWL (wire length)',x+570,y+38,24,SOFT,{w:500})+T(hp,x+570,y+92,54,INK,{w:700});
+  return G(t,t0,inner,x+420,y+60);
+}
+function stepScene(n,posFn,statusFn,decorFn,expl,bul,tt,o={}){
+  return (t,sec)=>{
+    let s=headerT(t,sec);
+    const st=statusFn(t);
+    s+=statusCard(t,sec.s+.3,st[0],st[1],st[2],st[3]);
+    let b=card(90,330,840,530)+T('chip 12×6 · 3 rows · site 1',130,388,30,SOFT,{w:700});
+    b+=drawChip(t,BX,BY,BS,posFn(t),{detect:o.detect!==false,order:o.order});
+    b+=decorFn?decorFn(t):'';
+    s+=G(t,sec.s+.2,b,510,595);
+    s+=stepBadge(t,n,sec.s+.3,sec.acc)+explain(t,expl,tt[0],sec.acc)+chips3(t,bul,tt.slice(1),sec.acc);
+    return s;
+  };
+}
+const scenes=[];
+/* 0 title */
+scenes[0]=(t,sec)=>{
+  let s='';
+  s+=G(t,.2,rect(110,190,370,58,29,'#fff','stroke="#FF5C93" stroke-width="5"')+T('Module 2 · Lesson 3',295,229,28,'#FF5C93',{w:700,a:'middle'}),295,219);
+  [['Overlap',330,'#1F2A5A'],['removal',445,'url(#g1)']].forEach(([txt,by,fill],li)=>{let acc=0;[...txt].forEach((ch,ci)=>{
+    const t0=.35+(li*8+ci)*.06,u=(t-t0)/.5;
+    if(u>0){const k=eob(u);const dy=(1-k)*-90+Math.sin(t*2.2+ci*.5)*(t>3?4:0);
+      s+=`<text x="${f1(110+acc)}" y="${f1(by+dy)}" font-family="P" font-weight="700" font-size="120" fill="${fill}" opacity="${f1(clamp(u*3))}">${esc(ch)}</text>`}
+    acc+=meas(txt.slice(0,ci+1),120,700)-meas(txt.slice(0,ci),120,700)})});
+  s+=G(t,1.6,card(110,500,830,290)+TW("Cells can't sit on top of each other! First **snap** them to the grid, then **pack** each row to the left. No cell changes row.",150,565,750,36,INK,{acc:'#FF5C93',lh:52,w:500}),525,650);
+  const k=t<6.0?0:ez(pp((t-6.0)/4.6));
+  let b=card(1000,190,760,600)+T('chip 12×6 · 3 rows',1040,250,30,SOFT,{w:700});
+  b+=drawChip(t,1032,300,58,mk(4,4+2*k,4+4*k,{B:{nl:k<.05},C:{nl:k<.05}}),{detect:true,order:ORD_PACK});
+  b+=T(k>.5?'no overlaps!':'overlap!',1380,840,40,k>.5?'#2BBF7E':'#FF5C93',{w:700,a:'middle'});
+  s+=G(t,.9,b,1380,490);
+  return s;
+};
+/* 1 idea */
+scenes[1]=(t,sec)=>{
+  let s=headerT(t,sec);
+  const ox=90,oy=190,pw=800,ph=660,s0=61,x0=ox+34,y0=oy+150;
+  const ph0=((t-sec.s)+0)%10,E=eoE=>0;
+  const pb=ez((ph0-3.4)/1.2),pc=ez((ph0-5.4)/1.2);
+  const flag=ph0<1.4?4:ph0<2.2?lerp(4,6,ez((ph0-1.4)/.8)):ph0<4.6?6:ph0<5.4?lerp(6,8,ez((ph0-4.6)/.8)):ph0<7.0?8:lerp(8,10,ez((ph0-7)/.8));
+  const pos=mk(4,4+2*pb,4+4*pc,{D:{a:.5},E:{a:.5},F:{a:.5}});
+  let inner=card(ox,oy,pw,ph)+T('Pack left, row by row',ox+pw/2,oy+62,38,INK,{w:700,a:'middle'});
+  inner+=drawChip(t,x0,y0,s0,pos,{detect:ph0<7.2,order:ORD_PACK});
+  const fx=x0+flag*s0,fy=y0+(6-2)*s0; // flag at row y=2 bottom edge
+  inner+=`<line x1="${f1(fx)}" y1="${f1(fy+2*s0)}" x2="${f1(fx)}" y2="${f1(fy-10)}" stroke="#FF5C93" stroke-width="6" stroke-linecap="round"/><polygon points="${f1(fx)},${f1(fy-10)} ${f1(fx+60)},${f1(fy+8)} ${f1(fx)},${f1(fy+26)}" fill="#FF5C93"/>`;
+  inner+=flag>6.5?T('next free site',fx-8,fy-22,24,'#FF5C93',{w:700,a:'end'}):T('next free site',fx+8,fy-22,24,'#FF5C93',{w:700});
+  const cap=ph0<1.4?'1 · sort by x: A, B, C':ph0<3.4?'2 · A stays at 4':ph0<5.4?'3 · B takes the next free site: 6':ph0<7.2?'4 · C takes the next: 8':'no overlaps!';
+  inner+=T(cap,ox+pw/2,oy+ph-60,34,ph0>=7.2?'#2BBF7E':INK,{w:700,a:'middle'});
+  inner+=T('D, E, F (other rows) keep their roles',ox+pw/2,oy+ph-22,24,SOFT,{w:500,a:'middle'});
+  s+=G(t,sec.s+.4,inner,ox+pw/2,oy+ph/2);
+  s+=bulletCards(t,['**Sort** the cells by x within each row and place them **left**, with no overlap.','**D, E and F** keep their seed roles on the other rows.','It is the same **shelf pack** that Tetris uses: simple and deterministic.'],SCH.s1,940,200,890,200,22,36);
+  return s;
+};
+/* 2 pseudocode: two phases demo */
+scenes[2]=(t,sec)=>{
+  let s=headerT(t,sec);
+  const ox=90,oy=190,pw=800,ph=660,s0=61,x0=ox+34,ry=oy+250;
+  const ph0=((t-sec.s)+0)%11;
+  const raw=[3.5,4.5,5.5],snap=[4,5,6],pk=[4,6,8];
+  const k1=ez((ph0-1.6)/1.4),k2=ez((ph0-5.0)/2.0);
+  const xs=raw.map((r,i)=>ph0<4.6?lerp(r,snap[i],k1):lerp(snap[i],pk[i],k2));
+  const phase2=ph0>=4.6;
+  let inner=card(ox,oy,pw,ph)+T(phase2?'Phase 2 · Pack left, in x order':'Phase 1 · Snap to the grid',ox+pw/2,oy+72,38,phase2?'#4C7DFF':'#9B5DFF',{w:700,a:'middle'});
+  inner+=rect(x0,ry,12*s0,2*s0,14,'#FFF7E0',`stroke="${INK}" stroke-width="6"`);
+  for(let u=1;u<12;u++)inner+=`<line x1="${x0+u*s0}" y1="${ry}" x2="${x0+u*s0}" y2="${ry+2*s0}" stroke="#F0E3BC" stroke-width="2"/>`;
+  for(let u=0;u<=12;u+=2)inner+=T(String(u),x0+u*s0,ry+2*s0+36,22,SOFT,{w:500,a:'middle'});
+  const cols=['#3D7BFF','#2BBF7E','#9B5DFF'],L=['A','B','C'];
+  let ovl=false;for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)if(Math.abs(xs[i]-xs[j])<1.98)ovl=true;
+  [0,1,2].forEach(i=>{const px=x0+xs[i]*s0;inner+=`<g opacity=".86">`+rect(px+2,ry+2,2*s0-4,2*s0-4,12,cols[i],'stroke="#fff" stroke-width="3"')+`</g>`});
+  [0,1,2].forEach(i=>{const px=x0+xs[i]*s0;inner+=circ(px+s0*.5,ry+s0*.55,24,'#fff','opacity=".95"')+T(L[i],px+s0*.5,ry+s0*.55+10,28,cols[i],{w:700,a:'middle'})});
+  const cap=ph0<1.6?'Cells land between grid squares':ph0<4.6?(k1>.9?'On the grid… but still overlapping!':'Snapping…'):ph0<7.2?'Slide each cell to the next free site':'No overlaps. Legal!';
+  const bad=ph0<7.2&&ph0>=1.6;
+  inner+=T(cap,ox+pw/2,oy+ph-110,34,(ph0>=7.2)?'#2BBF7E':INK,{w:700,a:'middle'});
+  if(ovl&&ph0>=3)inner+=pill('overlap!',ox+pw/2-80,ry-70,160,'#FF3B3B');
+  s+=G(t,sec.s+.4,inner,ox+pw/2,oy+ph/2);
+  s+=bulletCards(t,['Overlap removal is a **two-phase** sketch: **snap** first, then **pack** each row.','Pseudocode makes the phases explicit, so you do not merge them into one vague “fix”.',"Open this module's examples file and find the **Pseudocode** section.",'That written sketch is what you implement on the implement track and what the browser lab follows.'],SCH.s2,940,200,890,152,18,31);
+  return s;
+};
+/* 3 code slide */
+scenes[3]=(t,sec)=>{
+  let s=headerT(t,sec);
+  const KW='#9B5DFF',ID='#1F2A5A',OP='#FF5C93',NU='#FF7A3D';
+  const L=[
+   [['INPUT',KW],[': positions, widths, rows, fixed macros',ID]],
+   [['OUTPUT',KW],[': legal packing (if capacity allows)',ID]],
+   [['',ID]],
+   [['snap all movables',KW],[' to sites/rows',ID]],
+   [['for each row',KW],[' y:',ID]],
+   [['  sort movables by x; left-pack ',ID],['(skip macros)',OP]],
+   [['report',KW],[' legal?, disp, HPWL',ID]],
+   [['',ID]],
+   [['GOLDEN',KW],[': A@',ID],['4',NU],[' B@',ID],['6',NU],[' C@',ID],['8',NU],[' on y=2; disp=',ID],['6',NU],['; HPWL=',ID],['32',NU]]
+  ];
+  let inner=card(220,200,1480,650)+`<path d="M220 236 a36 36 0 0 1 36 -36 H1664 a36 36 0 0 1 36 36 V256 H220 Z" fill="#EAF1FF"/>`+circ(262,228,9,'#FF5C93')+circ(292,228,9,'#FFB300')+circ(322,228,9,'#2BBF7E')+T('overlap_removal.pseudo',960,238,24,SOFT,{w:500,a:'middle'});
+  const lt=t-sec.s,rows=lt<4?[3]:lt<7?[4,5]:lt<8.6?[6]:[8];
+  rows.forEach(r=>{inner+=rect(245,335+r*54-40,1430,52,14,'#FFB300','opacity=".2"')});
+  L.forEach((ln,i)=>{const by=335+i*54;
+    inner+=`<text xml:space="preserve" x="280" y="${by}" font-family="M" font-weight="700" font-size="38" style="white-space:pre">`+ln.map(([tx,c])=>`<tspan fill="${c}">${esc(tx)}</tspan>`).join('')+`</text>`});
+  const lab=lt<4?'Phase 1 · snap':lt<7?'Phase 2 · pack each row':lt<8.6?'then report':'the teaching seed: A at four';
+  inner+=pill(lab,960-240,792,480,'#4C7DFF','#fff',28);
+  s+=G(t,sec.s+.2,inner,960,525,{d:.6});
+  return s;
+};
+/* 4-8 steps */
+const stk=t=>mk(4,4,4,{A:{nl:1},B:{nl:1}});
+scenes[4]=stepScene(1,stk,()=>[false,'overlap A/B','–','–'],t=>{
+  const r=`<rect x="${cx(4)-6}" y="${cyTop(2)-6}" width="${2*BS+12}" height="${2*BS+12}" rx="14" fill="none" stroke="#FF3B3B" stroke-width="5" stroke-dasharray="12 8" stroke-dashoffset="${f1(-t*30)}"/>`;
+  return r+G(t,72.0,pill('A · B · C all at (4, 2)',cx(5)-150,cyTop(2)-62,300,'#FF3B3B'),cx(5),cyTop(2)-40);
+},'The overlap seed piles three width-two cells **A, B, C** on the middle row at x = 4. Two blocks can’t share a seat, so the chip is **not legal** yet.',['A, B, C @ (4, 2)','Illegal: overlap A/B','D @ 8,4 · E @ 0,4 · F @ 10,0'],SCH.s4);
+scenes[5]=stepScene(2,t=>mk(4+Math.sin(t*9)*.03,4,4+Math.cos(t*8)*.03,{A:{nl:1},B:{nl:1}}),()=>[false,'middle row crowded','–','–'],t=>{
+  const lt=(t-82.53)%2.4,rr=lt/2.4*130;
+  const ring=`<circle cx="${cx(5)}" cy="${cyTop(2)+BS}" r="${f1(rr)}" fill="none" stroke="#FFB300" stroke-width="6" opacity="${f1(1-lt/2.4)}"/>`;
+  return ring+G(t,83.6,pill('snapped onto the grid',cx(5)-175,cyTop(2)-62,350,'#FF9A00'),cx(5),cyTop(2)-40)+G(t,86.0,pill('…but still stacked!',cx(5)-145,cyTop(2)+2*BS+18,290,'#FF3B3B'),cx(5),cyTop(2)+2*BS+40);
+},'Snapping puts the pile on the grid, but it does not pull **A, B and C** apart. They stay at (4, 2). Overlap removal keeps each cell’s **row** and fixes the x conflict by **packing**.',['Snap preserves row intent','Overlap is an x problem on-row','Pack by increasing x order'],SCH.s5);
+const pbF=t=>ez((t-96.8)/2),pcF=t=>ez((t-99.2)/2.4);
+scenes[6]=stepScene(3,t=>mk(4,4+2*pbF(t),4+4*pcF(t)),t=>{const d=Math.round(2*pbF(t)+4*pcF(t)),leg=t>101.8;return [leg,leg?'':'overlap A/B',t>96.8?String(d):'–',leg?'32':'–']},t=>{
+  let g='';
+  if(t>96.8){const y=cyTop(2)-16;g+=arrow(cx(5),y,lerp(cx(5),cx(7),pbF(t))+0.01,y,'#2BBF7E',7,0)}
+  if(t>99.2){const y=cyTop(2)-44;g+=arrow(cx(5),y,lerp(cx(5),cx(9),pcF(t))+0.01,y,'#9B5DFF',7,0)}
+  return g+G(t,95.8,pill('sort by x, then left-pack',cx(0)+20,cyTop(1)+2*BS+12,370,'#4C7DFF'),cx(3),cyTop(1)+2*BS+34);
+},'On row y = 2, sort by x and place left without overlap: **A** at 4, **B** at 6, **C** at 8. Each width-2 cell takes two sites, so now nobody overlaps!',['Keep the sort order from snap','Left-pack within the row','No cross-row moves'],SCH.s6,{order:ORD_PACK});
+scenes[7]=stepScene(4,()=>mk(4,6,8),()=>[true,'','6','32'],t=>{
+  const tags=[['A +0',cx(5),'#3D7BFF',109.6],['B +2',cx(7),'#2BBF7E',111.0],['C +4',cx(9),'#9B5DFF',112.4]];
+  let g='';tags.forEach(([tx,x,c,t0])=>{g+=G(t,t0,pill(tx,x-55,cyTop(2)-62,110,c),x,cyTop(2)-40)});
+  g+=G(t,114.0,pill('0 + 2 + 4 = 6',cx(7)-150,cyTop(2)+2*BS+18,300,'#2BBF7E'),cx(7),cyTop(2)+2*BS+40);
+  return g;
+},'The chip is **legal**! Total displacement is **6** (B moved 2, C moved 4) and HPWL is **32**. D, E and F never moved.',['legal: true','L1 displacement from the overlap origin','Report HPWL with the same nets'],SCH.s7,{detect:false,order:ORD_PACK});
+scenes[8]=stepScene(5,t=>mk(4,6,8,{A:{a:.35},B:{a:.35},C:{a:.35},D:{out:'#FF5C93'},E:{out:'#FF5C93'},F:{out:'#FF5C93'}}),()=>[true,'','6','32'],t=>G(t,120.4,pill('only the middle row moved',548,358,370,'#9B5DFF','#fff',24),733,380),
+'Macro-sized **D** stays at (8, 4), **E** at (0, 4) and **F** at (10, 0). Overlap removal only repacked the crowded middle row. Cells on other rows are untouched.',['D: top row @ 8','E: top row @ 0','F: bottom row @ 10'],SCH.s8,{detect:false,order:ORD_PACK});
+/* 9 pitfalls */
+scenes[9]=(t,sec)=>{
+  let s=headerT(t,sec,`<g transform="translate(${110+meas('Pitfalls',72,700)+90} 122) scale(.6)">${icon('warn',0,0,'#FFB300',t)}</g>`);
+  const cols=['#FF9A00','#FF5C93','#4C7DFF'],tx=['Do not blend snap and pack into one vague “fix”.','Keep each cell on its **own row**. No cross-row moves.','**Skip fixed macros** when you pack a row.'];
+  [0,1,2].forEach(i=>{
+    const x=90+i*600,y=210,w=540,h=600,c0=x+w/2;
+    let inner=card(x,y,w,h)+`<path d="M${x} ${y+36} a36 36 0 0 1 36 -36 H${x+w-36} a36 36 0 0 1 36 36 V${y+30} H${x} Z" fill="${cols[i]}"/>`;
+    inner+=TW(tx[i],x+36,y+96,w-72,34,INK,{w:700,acc:cols[i],lh:44});
+    if(i===0){
+      inner+=rect(x+110,y+240,320,56,28,'#FFD3E3')+T('one vague “fix”',c0,y+277,28,'#B03060',{w:700,a:'middle'})+`<line x1="${x+100}" y1="${y+232}" x2="${x+440}" y2="${y+304}" stroke="#FF3B3B" stroke-width="8" stroke-linecap="round"/><line x1="${x+440}" y1="${y+232}" x2="${x+100}" y2="${y+304}" stroke="#FF3B3B" stroke-width="8" stroke-linecap="round"/>`;
+      const bob=Math.sin(t*3)*4;
+      inner+=rect(x+50,y+370+bob,190,120,30,'#D3E1FF')+T('1 · snap',x+145,y+442+bob,36,'#4C7DFF',{w:700,a:'middle'})+rect(x+300,y+370-bob,190,120,30,'#C9F2DC')+T('2 · pack',x+395,y+442-bob,36,'#2BBF7E',{w:700,a:'middle'})+arrow(x+246,y+430,x+296,y+430,'#1F2A5A',6,0);
+    }
+    if(i===1){
+      inner+=drawChip(t,x+40,y+250,41,mk(4,6,8),{detect:false,ticks:false,order:ORD_PACK});
+      const px=x+40+5*41,py=y+250+(6-4)*41;
+      inner+=arrow(x+40+7*41,py+20,x+40+8*41,py+20,'#2BBF7E',6,0);
+      inner+=`<line x1="${px}" y1="${py-4}" x2="${px}" y2="${py-86}" stroke="#FF3B3B" stroke-width="7" stroke-linecap="round" stroke-dasharray="3 12"/><line x1="${px-26}" y1="${py-70}" x2="${px+26}" y2="${py-30}" stroke="#FF3B3B" stroke-width="8" stroke-linecap="round"/><line x1="${px+26}" y1="${py-70}" x2="${px-26}" y2="${py-30}" stroke="#FF3B3B" stroke-width="8" stroke-linecap="round"/>`;
+      inner+=T('slide sideways ✓  jump rows ✗',c0,y+560,26,SOFT,{w:700,a:'middle'});
+    }
+    if(i===2){
+      inner+=drawChip(t,x+40,y+250,41,mk(4,6,8),{detect:false,ticks:false,order:ORD_PACK});
+      const lx=x+40+9*41,ly=y+250+10;
+      inner+=rect(lx-18,ly+20,36,28,6,'#1F2A5A')+`<path d="M${lx-11} ${ly+20} v-8 a11 11 0 0 1 22 0 v8" fill="none" stroke="#1F2A5A" stroke-width="6" stroke-linecap="round"/>`;
+      inner+=T('fixed macro D: skip!',c0,y+560,26,SOFT,{w:700,a:'middle'});
+    }
+    s+=G(t,SCH.s9[i],inner,c0,y+h/2,{d:.55});
+  });
+  return s;
+};
+// 13 your turn
+scenes[10]=(t,sec)=>{
+  let s=headerT(t,sec);
+  const items=['Complete the checklist for at least one track, preferably **both**.','Implement until your metrics match the starter **goldens**.','When you’re ready, take the short **quiz**, then continue to the next module.'];
+  const cols=['#4C7DFF','#2BBF7E','#FF9A00'];
+  items.forEach((it,i)=>{
+    const y=220+i*170,t0=SCH.s13[i];
+    let inner=card(150,y,1500,140)+TC(it,320,y+70,1280,40,INK,{acc:cols[i],w:500});
+    inner+=circ(235,y+70,48,'#fff','stroke="'+cols[i]+'" stroke-width="8"');
+    const ck=eob((t-t0-.35)/.4);
+    if(t>t0+.35)inner+=`<g transform="translate(235 ${y+70}) scale(${f1(ck*100)/100}) translate(-235 ${-(y+70)})">${circ(235,y+70,48,cols[i])}<polyline points="212,${y+70} 229,${y+88} 260,${y+50}" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+    s+=G(t,t0,inner,900,y+70);
+  });
+  const t3=SCH.s13[3];
+  if(t>=t3){const k=eob((t-t3)/.6);s+=`<g transform="translate(960 840) scale(${f1(k*100)/100}) translate(-960 -840)">${T('Great job!',960,860,120,'url(#g1)',{w:700,a:'middle'})}</g>`;
+    for(let i=0;i<90;i++){const d=t-t3,x0=R(i)*1920,sp=260+R(i+200)*340,y=-40+d*sp-(R(i+400)*300)+Math.sin(d*3+i)*10,x=x0+Math.sin(d*2+i)*40;if(y>1100)continue;
+      s+=`<rect x="${f1(x)}" y="${f1(y)}" width="${14+R(i+7)*12}" height="${10+R(i+9)*10}" rx="3" fill="${BUB[i%6]}" transform="rotate(${f1(d*200+i*40)} ${f1(x)} ${f1(y)})"/>`}
+  }
+  return s;
+};
+
+/* ---------- main ---------- */
+const svg=document.getElementById('s');
+function frame(t){
+  const i=secIndex(t),sec=SEC[i],lt=t-sec.s;
+  let body='';
+  try{
+    const k=eo(lt/.45);
+    body=`<g opacity="${f1(clamp(lt/.2)*100)/100}" transform="translate(${f1((1-k)*70)} 0)">${scenes[sec.sc](t,sec)}</g>`;
+  }catch(e){body=`<text x="60" y="400" font-size="36" fill="red">ERR ${sec.sc}: ${esc(String(e.stack||e).slice(0,300))}</text>`}
+  svg.innerHTML=DEFS+bg(t)+progress(t)+body+mascot(t,sec)+burst(t);
+}
+frame(0);
+</script>
+</body></html>
